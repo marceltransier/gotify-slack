@@ -1,6 +1,6 @@
 BUILDDIR=./build
 GOTIFY_VERSION=master
-PLUGIN_NAME=myplugin
+PLUGIN_NAME=gotify-slack
 PLUGIN_ENTRY=plugin.go
 GO_VERSION=`cat $(BUILDDIR)/gotify-server-go-version`
 DOCKER_BUILD_IMAGE=gotify/build
