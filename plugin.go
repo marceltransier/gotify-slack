@@ -29,6 +29,8 @@ type Plugin struct {
 	config     *Config
 	api        *slack.Client
 	rtm        *slack.RTM
+	uid        string
+	team       string
 }
 
 // Config is a user plugin configuration.
@@ -70,17 +72,19 @@ func (c *Plugin) ValidateAndSetConfig(conf interface{}) error {
 
 func (c *Plugin) startRTM() error {
 	c.api = slack.New(c.config.SlackToken)
+	atr, err := c.api.AuthTest()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	c.uid = atr.UserID
+	c.team = atr.Team
 	c.rtm = c.api.NewRTM()
 	go c.rtm.ManageConnection()
 
 	for msg := range c.rtm.IncomingEvents {
 		switch ev := msg.Data.(type) {
 		case *slack.MessageEvent:
-			team, err := c.api.GetTeamInfo()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
 			channel, err := c.api.GetConversationInfo(ev.Msg.Channel, true)
 			if err != nil {
 				log.Println(err)
@@ -91,8 +95,10 @@ func (c *Plugin) startRTM() error {
 				log.Println(err)
 				continue
 			}
-			// TODO if user == me -> continue
-			title := "Slack | " + team.Name + " | "
+			if user.ID == c.uid {
+				continue
+			}
+			title := "Slack | " + c.team + " | "
 			if channel.Name != "" {
 				title += channel.Name + " | "
 			}

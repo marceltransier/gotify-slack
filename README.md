@@ -10,4 +10,7 @@ Slack push notifications for gotify.
   - Mention
   - Keywords?
   - Reactions
+- Msg.Attachments
+- Msg.Edited
+- outsource files. displayer.go, configurer.go, ...
 - Tests?
