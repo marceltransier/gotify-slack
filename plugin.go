@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html"
 	"log"
 	"net/url"
 	"regexp"
@@ -115,6 +116,7 @@ func (c *Plugin) startRTM() error {
 				}
 				return "@" + user.RealName
 			})
+			msgtext = html.UnescapeString(msgtext)
 			c.msgHandler.SendMessage(plugin.Message{
 				Title:    title,
 				Message:  msgtext,
