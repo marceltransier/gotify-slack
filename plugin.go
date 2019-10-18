@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/gotify/plugin-api"
 	"github.com/nlopes/slack"
@@ -70,6 +72,8 @@ func (c *Plugin) ValidateAndSetConfig(conf interface{}) error {
 	return c.startRTM()
 }
 
+var mentionRe = regexp.MustCompile(`<@[^>]+>`)
+
 func (c *Plugin) startRTM() error {
 	c.api = slack.New(c.config.SlackToken)
 	atr, err := c.api.AuthTest()
@@ -103,9 +107,17 @@ func (c *Plugin) startRTM() error {
 				title += channel.Name + " | "
 			}
 			title += user.RealName
+			msgtext := mentionRe.ReplaceAllStringFunc(ev.Msg.Text, func(s string) string {
+				userid := strings.Trim(s, "<@>")
+				user, err := c.api.GetUserInfo(userid)
+				if err != nil {
+					return "@Error"
+				}
+				return "@" + user.RealName
+			})
 			c.msgHandler.SendMessage(plugin.Message{
 				Title:    title,
-				Message:  ev.Msg.Text,
+				Message:  msgtext,
 				Priority: 5,
 			})
 
