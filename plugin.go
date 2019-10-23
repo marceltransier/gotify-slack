@@ -95,7 +95,15 @@ func (c *Plugin) startRTM() error {
 				log.Println(err)
 				continue
 			}
-			user, err := c.api.GetUserInfo(ev.Msg.User)
+			uid := ev.Msg.User
+			text := ev.Msg.Text
+			edited := false
+			if ev.SubMessage != nil && ev.SubMessage.Edited != nil {
+				uid = ev.SubMessage.User
+				text = ev.PreviousMessage.Text + "\n-----\n" + ev.SubMessage.Text
+				edited = true
+			}
+			user, err := c.api.GetUserInfo(uid)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -108,15 +116,30 @@ func (c *Plugin) startRTM() error {
 				title += channel.Name + " | "
 			}
 			title += user.RealName
-			msgtext := mentionRe.ReplaceAllStringFunc(ev.Msg.Text, func(s string) string {
+			if edited {
+				title += " [Edit]"
+			}
+			msgtext := mentionRe.ReplaceAllStringFunc(text, func(s string) string {
 				userid := strings.Trim(s, "<@>")
 				user, err := c.api.GetUserInfo(userid)
 				if err != nil {
 					return "@Error"
 				}
-				return "@" + user.RealName
+				return fmt.Sprintf("<@%s>", user.RealName)
 			})
 			msgtext = html.UnescapeString(msgtext)
+			if len(ev.Msg.Attachments) != 0 {
+				for _, att := range ev.Msg.Attachments {
+					msgtext += "\n> " + att.Fallback
+				}
+			}
+			if len(ev.Msg.Files) != 0 {
+				var titles []string
+				for _, file := range ev.Msg.Files {
+					titles = append(titles, file.Title)
+				}
+				msgtext += "\nFiles: " + strings.Join(titles, ", ")
+			}
 			c.msgHandler.SendMessage(plugin.Message{
 				Title:    title,
 				Message:  msgtext,
